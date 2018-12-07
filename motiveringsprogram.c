@@ -33,6 +33,7 @@ void CreateEntry(fractiontype fraction, int weight, saveinfo *waste_data, int s)
 void AddWasteData(fractiontype fraction, int weight, saveinfo *waste_data, int s);
 void ShiftData(saveinfo *waste_data, int s);
 void AddDate(saveinfo *waste_data);
+void resetdata(saveinfo *waste_data);
 void run_motivation(saveinfo *wastedata, int s);
 void scoreboard(saveinfo *wastedata, int s);
 double sorted_garbage_percentage(saveinfo *waste_data);
@@ -124,6 +125,7 @@ void UpdateEntry(fractiontype fraction, int weight, saveinfo *waste_data, int s)
 void CreateEntry(fractiontype fraction, int weight, saveinfo *waste_data, int s){
 	ShiftData(waste_data, s);
 	AddDate(waste_data);
+    resetdata(waste_data);
 	AddWasteData(fraction, weight, waste_data, s);
 }
 
@@ -162,6 +164,13 @@ void AddDate(saveinfo *waste_data){
   	waste_data[0].date.day = t->tm_mday,
   	waste_data[0].date.month = t->tm_mon+1,
   	waste_data[0].date.year = t->tm_year+1900;
+}
+
+void resetdata(saveinfo *waste_data){
+    waste_data[0].residual = 0;
+    waste_data[0].paper = 0;
+    waste_data[0].plastic = 0;
+    waste_data[0].metal = 0;
 }
 
 int WhichFractionType(const char * fraction){
