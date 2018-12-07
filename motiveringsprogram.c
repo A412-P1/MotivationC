@@ -7,6 +7,7 @@
 #define EU_RIS 7 * (100/18)
 #define EU_SORT 11 * (100/18)
 #define days 30
+#define rating_period 7
 
 typedef struct {
 	int day;
@@ -32,6 +33,9 @@ void CreateEntry(fractiontype fraction, int weight, saveinfo *waste_data, int s)
 void AddWasteData(fractiontype fraction, int weight, saveinfo *waste_data, int s);
 void ShiftData(saveinfo *waste_data, int s);
 void AddDate(saveinfo *waste_data);
+void run_motivation(saveinfo *wastedata, int s);
+void scoreboard(saveinfo *wastedata, int s);
+double sorted_garbage_percentage(saveinfo *waste_data);
 void save(char * file, const saveinfo *waste_data, int s);
 void print_all(saveinfo *waste_data, int s);
 void load_toFraction(const char * fraction, const char * weight);
@@ -44,11 +48,12 @@ int is_paper(const char * fraction);
 
 int main(int argc, char const *argv[]){
 	int s;
-	saveinfo *waste_data = malloc(30 * sizeof(saveinfo));
+	saveinfo *waste_data = malloc(days * sizeof(saveinfo));
 	s = load("save", waste_data);
-	/*print_all(waste_data, s);*/
 	s = new_input(argc, argv, waste_data, s);
 
+	run_motivation(waste_data, s);
+	
 	save("save", waste_data, s);
 	free(waste_data);
 	return 0;
@@ -97,9 +102,10 @@ int new_input(int argc, char const *argv[], saveinfo *waste_data, int s){
 		CreateEntry(fraction, weight, waste_data, s);
 		return s + 1;
 	}
+	return s;
 }
 
-/* Check if Date is Today
+/* Check if Date is Today for Most Recent Deposit
 Input: Date Struct
 Output: True, False*/
 int IsToday(date MRD){
@@ -145,8 +151,9 @@ void AddWasteData(fractiontype fraction, int weight, saveinfo *waste_data, int s
 void ShiftData(saveinfo *waste_data, int s){
 	while(s > 0){
 		waste_data[s] = waste_data[s-1];
-		s++;
+		s--;
 	}
+
 }
 
 void AddDate(saveinfo *waste_data){
@@ -157,44 +164,13 @@ void AddDate(saveinfo *waste_data){
   	waste_data[0].date.year = t->tm_year+1900;
 }
 
-void save(char * file, const saveinfo *waste_data, int s){
-	int i = 0;
-	FILE *savefile = fopen(file, "w");
-
-	while(i < s){
-		fprintf(savefile, "%d.%d.%d | RESIDUAL: %d, PAPER: %d, PLASTIC: %d, METAL: %d.\n",
-			waste_data[i].date.day,
-			waste_data[i].date.month,
-			waste_data[i].date.year,
-			waste_data[i].residual,
-			waste_data[i].paper,
-			waste_data[i].plastic,
-			waste_data[i].metal);
-		i++;
-	}
-	fclose(savefile);
-}
-
-void print_all(saveinfo *waste_data, int s){
-	int i;
-	for (i = 0; i < s; ++i){
-		printf("%d.%d.%d | residual: %d, paper: %d, plastic: %d, metal: %d.\n",
-			waste_data[i].date.day,
-			waste_data[i].date.month,
-			waste_data[i].date.year,
-			waste_data[i].residual,
-			waste_data[i].paper,
-			waste_data[i].plastic,
-			waste_data[i].metal);
-	}
-}
-
-
 int WhichFractionType(const char * fraction){
+	
 	if (is_residual(fraction)) return residual;
 	if (is_plastic(fraction)) return plastic;
 	if (is_metal(fraction)) return metal;
 	if (is_paper(fraction)) return paper;
+	return -1;
 }
 
 int is_residual(const char * fraction){
@@ -215,4 +191,59 @@ int is_metal(const char * fraction){
 int is_paper(const char * fraction){
 
 	return strcmp(fraction, "paper") ? 0 : 1;
+}
+
+void print_all(saveinfo *waste_data, int s){
+	int i;
+	for (i = 0; i < s; ++i){
+		printf("%d.%d.%d | residual: %d, paper: %d, plastic: %d, metal: %d.\n",
+			waste_data[i].date.day,
+			waste_data[i].date.month,
+			waste_data[i].date.year,
+			waste_data[i].residual,
+			waste_data[i].paper,
+			waste_data[i].plastic,
+			waste_data[i].metal);
+	}
+}
+
+void run_motivation(saveinfo *waste_data, int s){
+	scoreboard(waste_data, s);
+
+}
+
+void scoreboard(saveinfo *waste_data, int s){
+	double SGP = sorted_garbage_percentage(waste_data);
+	printf("%lf\n", SGP);
+}
+
+double sorted_garbage_percentage(saveinfo *waste_data){
+	int i;
+	int sorted_garbage;
+	int total_garbage;
+	for (i = 0; i < rating_period; ++i){
+		sorted_garbage += waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
+		total_garbage += waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
+	}
+	return sorted_garbage/total_garbage;
+}
+
+
+
+void save(char * file, const saveinfo *waste_data, int s){
+	int i = 0;
+	FILE *savefile = fopen(file, "w");
+
+	while(i < s){
+		fprintf(savefile, "%d.%d.%d | RESIDUAL: %d, PAPER: %d, PLASTIC: %d, METAL: %d.\n",
+			waste_data[i].date.day,
+			waste_data[i].date.month,
+			waste_data[i].date.year,
+			waste_data[i].residual,
+			waste_data[i].paper,
+			waste_data[i].plastic,
+			waste_data[i].metal);
+		i++;
+	}
+	fclose(savefile);
 }
