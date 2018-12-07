@@ -7,7 +7,7 @@
 #define EU_RIS 7 * (100/18)
 #define EU_SORT 11 * (100/18)
 #define days 30
-#define rating_period 7
+#define rating_interval 7
 
 typedef struct {
 	int day;
@@ -34,9 +34,10 @@ void AddWasteData(fractiontype fraction, int weight, saveinfo *waste_data, int s
 void ShiftData(saveinfo *waste_data, int s);
 void AddDate(saveinfo *waste_data);
 void resetdata(saveinfo *waste_data);
-void run_motivation(saveinfo *wastedata, int s);
+void motivation_modules(saveinfo *wastedata, int s);
 void scoreboard(saveinfo *wastedata, int s);
-double sorted_garbage_percentage(saveinfo *waste_data);
+double sorted_garbage_percentage(saveinfo *waste_data, int s);
+int SGP_points(double SGP);
 void save(char * file, const saveinfo *waste_data, int s);
 void print_all(saveinfo *waste_data, int s);
 void load_toFraction(const char * fraction, const char * weight);
@@ -53,7 +54,7 @@ int main(int argc, char const *argv[]){
 	s = load("save", waste_data);
 	s = new_input(argc, argv, waste_data, s);
 
-	run_motivation(waste_data, s);
+	motivation_modules(waste_data, s);
 	
 	save("save", waste_data, s);
 	free(waste_data);
@@ -216,25 +217,46 @@ void print_all(saveinfo *waste_data, int s){
 	}
 }
 
-void run_motivation(saveinfo *waste_data, int s){
+void motivation_modules(saveinfo *waste_data, int s){
 	scoreboard(waste_data, s);
-
 }
 
 void scoreboard(saveinfo *waste_data, int s){
-	double SGP = sorted_garbage_percentage(waste_data);
-	printf("%lf\n", SGP);
+	double SGP = sorted_garbage_percentage(waste_data, s);
+	int total_points = 0;
+	total_points += SGP_points(SGP);
+	printf("Sorteringsforhold: %.2lf%\n", SGP);
+	printf("Total Point = %d\n", total_points);
+
+
 }
 
-double sorted_garbage_percentage(saveinfo *waste_data){
+double sorted_garbage_percentage(saveinfo *waste_data, int s){
 	int i;
-	int sorted_garbage;
-	int total_garbage;
-	for (i = 0; i < rating_period; ++i){
+	double sorted_garbage;
+	double total_garbage;
+	for (i = 0; i < rating_interval && i < s; ++i){
 		sorted_garbage += waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
-		total_garbage += waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
+		total_garbage += waste_data[i].residual + waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
 	}
-	return sorted_garbage/total_garbage;
+	return sorted_garbage/total_garbage * 100;
+}
+
+int SGP_points(double SGP){
+	int points = 0;
+
+	if (SGP < 15){
+		points += 2;
+	} else if (SGP < 30){
+		points += 4;
+	}  else if (SGP < 50){
+		points += 6;
+	}  else if (SGP < 60){
+		points += 8;
+	}  else {
+		points += 10;
+	}
+	return points;
 }
 
 
