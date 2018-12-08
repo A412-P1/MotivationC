@@ -46,7 +46,7 @@ void motivation_modules(fraction_state *wastedata, int s);
 void scoreboard(fraction_state *wastedata, int s);
 double sorted_garbage_percentage(fraction_state *waste_data, int s);
 void ShiftRating(user_stats *rating, int s);
-int SGP_points(double SGP);
+double SGP_points(double SGP);
 int point_decay(int rating);
 int load_userstats(char * file, user_stats *rating);
 int time_for_rating(void);
@@ -67,9 +67,8 @@ int main(int argc, char const *argv[]){
 	fraction_state *waste_data = malloc(days * sizeof(fraction_state));
 	s = load_wastedata("save", waste_data);
 	s = new_input(argc, argv, waste_data, s);
-
 	motivation_modules(waste_data, s);
-	
+	print_all(waste_data, s);
 	save_wastedata("save", waste_data, s);
 	free(waste_data);
 	return 0;
@@ -107,8 +106,7 @@ int load_wastedata(char * file, fraction_state *waste_data){
 int new_input(int argc, char const *argv[], fraction_state *waste_data, int s){
 	int weight;
 	fractiontype fraction;
-	if (argc != 3) return 0;
-
+	if (argc != 3) return s;
 	weight = atoi(argv[2]);
 	fraction = WhichFractionType(argv[1]);
 	if (IsToday(waste_data[0].date)){
@@ -275,6 +273,7 @@ int time_for_rating(void){
 
 int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s){
     double SGP = sorted_garbage_percentage(waste_data, s);
+    printf("%lf\n", SGP);
     ShiftRating(rating, k);
     rating[0].date = rating[1].date;
     rating[0].SGP = SGP;
@@ -290,6 +289,7 @@ double sorted_garbage_percentage(fraction_state *waste_data, int s){
 		sorted_garbage += waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
 		total_garbage += waste_data[i].residual + waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
 	}
+	printf("%lf/%lf = %lf\n", sorted_garbage, total_garbage, sorted_garbage/total_garbage * 100);
 	return sorted_garbage/total_garbage * 100;
 }
 
@@ -300,9 +300,8 @@ void ShiftRating(user_stats *rating, int s){
 	}
 }
 
-int SGP_points(double SGP){
-	int points = 0;
-
+double SGP_points(double SGP){
+	double points = 0;
 	if (SGP < 15){
 		points += 0;
 	} else if (SGP < 30){
