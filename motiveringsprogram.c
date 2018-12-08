@@ -4,6 +4,8 @@
 #include <ctype.h>
 #include <time.h>
 
+
+#define MIN(x, y) (x < y ? x : y)
 #define days 30
 #define SGP_interval 7
 #define rating_interval 10/*Number of weeks to measure security*/
@@ -45,6 +47,7 @@ void scoreboard(fraction_state *wastedata, int s);
 double sorted_garbage_percentage(fraction_state *waste_data, int s);
 void ShiftRating(user_stats *rating, int s);
 int SGP_points(double SGP);
+int point_decay(int rating);
 int load_userstats(char * file, user_stats *rating);
 int time_for_rating(void);
 int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s);
@@ -273,8 +276,9 @@ int time_for_rating(void){
 int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s){
     double SGP = sorted_garbage_percentage(waste_data, s);
     ShiftRating(rating, k);
-    rating[0].SGP = 1;
-    rating[0].rating = 1;
+    rating[0].date = rating[1].date;
+    rating[0].SGP = SGP;
+    rating[0].rating = MIN(100, rating[1].rating + SGP_points(SGP) - point_decay(rating[1].rating));
     return k + 1;
 }
 
@@ -300,7 +304,7 @@ int SGP_points(double SGP){
 	int points = 0;
 
 	if (SGP < 15){
-		points += 2;
+		points += 0;
 	} else if (SGP < 30){
 		points += 4;
 	}  else if (SGP < 50){
@@ -311,6 +315,22 @@ int SGP_points(double SGP){
 		points += 10;
 	}
 	return points;
+}
+
+int point_decay(int rating){
+	int decay = 0;
+	if (rating < 19){
+		decay = 0;
+	} else if (rating < 40){
+		decay = 2;
+	}  else if (rating < 60){
+		decay = 4;
+	}  else if (rating < 80){
+		decay = 6;
+	}  else {
+		decay = 8;
+	}
+	return decay;
 }
 
 void save_userstats(char * file, const user_stats *rating, int s){
