@@ -4,10 +4,10 @@
 #include <ctype.h>
 #include <time.h>
 
-#define EU_RIS 7 * (100/18)
-#define EU_SORT 11 * (100/18)
 #define days 30
-#define rating_interval 7
+#define SGP_interval 7
+#define rating_interval 10/*Number of weeks to measure security*/
+
 
 typedef struct {
 	int day;
@@ -21,25 +21,36 @@ typedef struct {
 	int plastic;
 	int metal;
 	date date;
-} saveinfo;
+} fraction_state;
+
+typedef struct {
+    date date;
+    double SGP;
+    int rating;
+} user_stats;
 
 typedef enum {residual, paper, plastic, metal} fractiontype;
 
-int load(char * file, saveinfo *waste_data);
-int new_input(int argc, char const *argv[], saveinfo *waste_data, int s);
+int load_wastedata(char * file, fraction_state *waste_data);
+int new_input(int argc, char const *argv[], fraction_state *waste_data, int s);
 int IsToday(date date);
-void UpdateEntry(fractiontype fraction, int weight, saveinfo *waste_data, int s);
-void CreateEntry(fractiontype fraction, int weight, saveinfo *waste_data, int s);
-void AddWasteData(fractiontype fraction, int weight, saveinfo *waste_data, int s);
-void ShiftData(saveinfo *waste_data, int s);
-void AddDate(saveinfo *waste_data);
-void resetdata(saveinfo *waste_data);
-void motivation_modules(saveinfo *wastedata, int s);
-void scoreboard(saveinfo *wastedata, int s);
-double sorted_garbage_percentage(saveinfo *waste_data, int s);
+void UpdateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s);
+void CreateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s);
+void AddWasteData(fractiontype fraction, int weight, fraction_state *waste_data, int s);
+void ShiftData(fraction_state *waste_data, int s);
+void AddDate(fraction_state *waste_data);
+void resetdata(fraction_state *waste_data);
+void motivation_modules(fraction_state *wastedata, int s);
+void scoreboard(fraction_state *wastedata, int s);
+double sorted_garbage_percentage(fraction_state *waste_data, int s);
+void ShiftRating(user_stats *rating, int s);
 int SGP_points(double SGP);
-void save(char * file, const saveinfo *waste_data, int s);
-void print_all(saveinfo *waste_data, int s);
+int load_userstats(char * file, user_stats *rating);
+int time_for_rating(void);
+int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s);
+void save_userstats(char * file, const user_stats *rating, int s);
+void save_wastedata(char * file, const fraction_state *waste_data, int s);
+void print_all(fraction_state *waste_data, int s);
 void load_toFraction(const char * fraction, const char * weight);
 int WhichFractionType(const char * fraction);
 int is_residual(const char * fraction);
@@ -50,18 +61,18 @@ int is_paper(const char * fraction);
 
 int main(int argc, char const *argv[]){
 	int s;
-	saveinfo *waste_data = malloc(days * sizeof(saveinfo));
-	s = load("save", waste_data);
+	fraction_state *waste_data = malloc(days * sizeof(fraction_state));
+	s = load_wastedata("save", waste_data);
 	s = new_input(argc, argv, waste_data, s);
 
 	motivation_modules(waste_data, s);
 	
-	save("save", waste_data, s);
+	save_wastedata("save", waste_data, s);
 	free(waste_data);
 	return 0;
 }
 
-int load(char * file, saveinfo *waste_data){
+int load_wastedata(char * file, fraction_state *waste_data){
 	int i = 0,
 	n = 0;
 	char line[256];
@@ -90,7 +101,7 @@ int load(char * file, saveinfo *waste_data){
 	return n;
 }
 
-int new_input(int argc, char const *argv[], saveinfo *waste_data, int s){
+int new_input(int argc, char const *argv[], fraction_state *waste_data, int s){
 	int weight;
 	fractiontype fraction;
 	if (argc != 3) return 0;
@@ -119,18 +130,18 @@ int IsToday(date MRD){
 	return (day == MRD.day && month == MRD.month && year == MRD.year);
 }
 
-void UpdateEntry(fractiontype fraction, int weight, saveinfo *waste_data, int s){
+void UpdateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s){
 	AddWasteData(fraction, weight, waste_data, s);
 }
 
-void CreateEntry(fractiontype fraction, int weight, saveinfo *waste_data, int s){
+void CreateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s){
 	ShiftData(waste_data, s);
 	AddDate(waste_data);
     resetdata(waste_data);
 	AddWasteData(fraction, weight, waste_data, s);
 }
 
-void AddWasteData(fractiontype fraction, int weight, saveinfo *waste_data, int s){
+void AddWasteData(fractiontype fraction, int weight, fraction_state *waste_data, int s){
 	switch(fraction){
 		case residual:	
 			waste_data[0].residual += weight;
@@ -151,15 +162,14 @@ void AddWasteData(fractiontype fraction, int weight, saveinfo *waste_data, int s
 	}
 }
 
-void ShiftData(saveinfo *waste_data, int s){
+void ShiftData(fraction_state *waste_data, int s){
 	while(s > 0){
 		waste_data[s] = waste_data[s-1];
 		s--;
 	}
-
 }
 
-void AddDate(saveinfo *waste_data){
+void AddDate(fraction_state *waste_data){
 	time_t now = time(NULL);
   	struct tm *t = localtime(&now);
   	waste_data[0].date.day = t->tm_mday,
@@ -167,7 +177,7 @@ void AddDate(saveinfo *waste_data){
   	waste_data[0].date.year = t->tm_year+1900;
 }
 
-void resetdata(saveinfo *waste_data){
+void resetdata(fraction_state *waste_data){
     waste_data[0].residual = 0;
     waste_data[0].paper = 0;
     waste_data[0].plastic = 0;
@@ -203,7 +213,7 @@ int is_paper(const char * fraction){
 	return strcmp(fraction, "paper") ? 0 : 1;
 }
 
-void print_all(saveinfo *waste_data, int s){
+void print_all(fraction_state *waste_data, int s){
 	int i;
 	for (i = 0; i < s; ++i){
 		printf("%d.%d.%d | residual: %d, paper: %d, plastic: %d, metal: %d.\n",
@@ -217,29 +227,73 @@ void print_all(saveinfo *waste_data, int s){
 	}
 }
 
-void motivation_modules(saveinfo *waste_data, int s){
+void motivation_modules(fraction_state *waste_data, int s){
 	scoreboard(waste_data, s);
 }
 
-void scoreboard(saveinfo *waste_data, int s){
-	double SGP = sorted_garbage_percentage(waste_data, s);
-	int total_points = 0;
-	total_points += SGP_points(SGP);
-	printf("Sorteringsforhold: %.2lf%\n", SGP);
-	printf("Total Point = %d\n", total_points);
-
-
+void scoreboard(fraction_state *waste_data, int s){
+    user_stats *rating = malloc(rating_interval * sizeof(user_stats));
+    int k = load_userstats("user.stats", rating);
+    if (time_for_rating()) k = new_rating(rating, k, waste_data, s);
+    save_userstats("user.stats", rating, k);
+    free(rating);
 }
 
-double sorted_garbage_percentage(saveinfo *waste_data, int s){
+int load_userstats(char * file, user_stats *rating){
+    int i = 0,
+    n = 0;
+    char line[256];
+    FILE *savefile = fopen(file, "r");
+
+    if (savefile == NULL){
+        printf("No save file detected!\n");
+    } else { 
+        while(fscanf(savefile, "%[^\n]\n", line) != EOF){
+        n++;
+        }
+        fseek(savefile, 0, SEEK_SET);
+        while (i < n){
+            fscanf(savefile, " %d.%d.%d | SGP: %lf, RATING: %d.",
+                &rating[i].date.day,
+                &rating[i].date.month,
+                &rating[i].date.year,
+                &rating[i].SGP,
+                &rating[i].rating);
+            i++;
+        }
+    }
+    fclose(savefile);
+    return n;
+}
+
+int time_for_rating(void){
+	return 1;
+}
+
+int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s){
+    double SGP = sorted_garbage_percentage(waste_data, s);
+    ShiftRating(rating, k);
+    rating[0].SGP = 1;
+    rating[0].rating = 1;
+    return k + 1;
+}
+
+double sorted_garbage_percentage(fraction_state *waste_data, int s){
 	int i;
 	double sorted_garbage;
 	double total_garbage;
-	for (i = 0; i < rating_interval && i < s; ++i){
+	for (i = 0; i < SGP_interval && i < s; ++i){
 		sorted_garbage += waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
 		total_garbage += waste_data[i].residual + waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
 	}
 	return sorted_garbage/total_garbage * 100;
+}
+
+void ShiftRating(user_stats *rating, int s){
+	while(s > 0){
+		rating[s] = rating[s-1];
+		s--;
+	}
 }
 
 int SGP_points(double SGP){
@@ -259,9 +313,23 @@ int SGP_points(double SGP){
 	return points;
 }
 
+void save_userstats(char * file, const user_stats *rating, int s){
+	int i = 0;
+	FILE *savefile = fopen(file, "w");
 
+	while(i < s){
+		fprintf(savefile, "%d.%d.%d | SGP: %.2lf, RATING: %d.\n",
+                rating[i].date.day,
+                rating[i].date.month,
+                rating[i].date.year,
+                rating[i].SGP,
+                rating[i].rating);
+		i++;
+	}
+	fclose(savefile);
+}
 
-void save(char * file, const saveinfo *waste_data, int s){
+void save_wastedata(char * file, const fraction_state *waste_data, int s){
 	int i = 0;
 	FILE *savefile = fopen(file, "w");
 
