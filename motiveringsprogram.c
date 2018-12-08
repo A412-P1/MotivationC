@@ -4,12 +4,10 @@
 #include <ctype.h>
 #include <time.h>
 
-
 #define MIN(x, y) (x < y ? x : y)
 #define days 30
 #define SGP_interval 7
 #define rating_interval 10/*Number of weeks to measure security*/
-
 
 typedef struct {
 	int day;
@@ -31,8 +29,10 @@ typedef struct {
     int rating;
 } user_stats;
 
+/* Fraction Types*/
 typedef enum {residual, paper, plastic, metal} fractiontype;
 
+/* PROTOTYPES*/
 int load_wastedata(char * file, fraction_state *waste_data);
 int new_input(int argc, char const *argv[], fraction_state *waste_data, int s);
 int IsToday(date date);
@@ -62,13 +62,15 @@ int is_metal(const char * fraction);
 int is_paper(const char * fraction);
 
 
+
+/* 	Load Waste_Data from Save
+	*/
 int main(int argc, char const *argv[]){
-	int s;
+	int s; /* Size of Waste Data */
 	fraction_state *waste_data = malloc(days * sizeof(fraction_state));
 	s = load_wastedata("save", waste_data);
 	s = new_input(argc, argv, waste_data, s);
 	motivation_modules(waste_data, s);
-	print_all(waste_data, s);
 	save_wastedata("save", waste_data, s);
 	free(waste_data);
 	return 0;
@@ -273,7 +275,6 @@ int time_for_rating(void){
 
 int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s){
     double SGP = sorted_garbage_percentage(waste_data, s);
-    printf("%lf\n", SGP);
     ShiftRating(rating, k);
     rating[0].date = rating[1].date;
     rating[0].SGP = SGP;
