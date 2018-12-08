@@ -7,7 +7,7 @@
 #define MIN(x, y) (x < y ? x : y)
 #define days 30
 #define SGP_interval 7
-#define rating_interval 10/*Number of weeks to measure security*/
+#define rating_interval 10
 
 typedef struct {
 	int day;
@@ -63,8 +63,7 @@ int is_paper(const char * fraction);
 
 
 
-/* 	Load Waste_Data from Save
-	*/
+/* 	Load Waste_Data from Save */
 int main(int argc, char const *argv[]){
 	int s; /* Size of Waste Data */
 	fraction_state *waste_data = malloc(days * sizeof(fraction_state));
