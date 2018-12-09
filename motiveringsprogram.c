@@ -6,7 +6,7 @@
 
 #define MIN(x, y) (x < y ? x : y)
 #define days 30
-#define SGP_interval 7
+#define SGP_INTERVAL 7
 #define rating_interval 10
 
 typedef struct {
@@ -63,7 +63,11 @@ int is_paper(const char * fraction);
 
 
 
-/* 	Load Waste_Data from Save */
+/* 	Load Waste_Data from Save
+	Add new input - if any - to Waste_Data
+	Run motivational modules
+	Save Waste_Data
+	Exit. */
 int main(int argc, char const *argv[]){
 	int s; /* Size of Waste Data */
 	fraction_state *waste_data = malloc(days * sizeof(fraction_state));
@@ -75,6 +79,7 @@ int main(int argc, char const *argv[]){
 	return 0;
 }
 
+/*	Load saved data to Waste_Data array, then return amount of entries */
 int load_wastedata(char * file, fraction_state *waste_data){
 	int i = 0,
 	n = 0;
@@ -104,6 +109,8 @@ int load_wastedata(char * file, fraction_state *waste_data){
 	return n;
 }
 
+/* 	Add Input to Waste_Data
+	*/
 int new_input(int argc, char const *argv[], fraction_state *waste_data, int s){
 	int weight;
 	fractiontype fraction;
@@ -132,10 +139,12 @@ int IsToday(date MRD){
 	return (day == MRD.day && month == MRD.month && year == MRD.year);
 }
 
+/* Update Lastest Entry in WasteData Latest Entry == Current Date */
 void UpdateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s){
 	AddWasteData(fraction, weight, waste_data, s);
 }
 
+/* Create New Entry in WasteData if Current Date != Latest Entry*/
 void CreateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s){
 	ShiftData(waste_data, s);
 	AddDate(waste_data);
@@ -143,6 +152,7 @@ void CreateEntry(fractiontype fraction, int weight, fraction_state *waste_data, 
 	AddWasteData(fraction, weight, waste_data, s);
 }
 
+/* Check fraction type, then add weigth to fraction */
 void AddWasteData(fractiontype fraction, int weight, fraction_state *waste_data, int s){
 	switch(fraction){
 		case residual:	
@@ -164,6 +174,7 @@ void AddWasteData(fractiontype fraction, int weight, fraction_state *waste_data,
 	}
 }
 
+/* Shift WasteData, so element 0 is the latest entry */
 void ShiftData(fraction_state *waste_data, int s){
 	while(s > 0){
 		waste_data[s] = waste_data[s-1];
@@ -171,6 +182,7 @@ void ShiftData(fraction_state *waste_data, int s){
 	}
 }
 
+/* Add Date to Created Entry*/
 void AddDate(fraction_state *waste_data){
 	time_t now = time(NULL);
   	struct tm *t = localtime(&now);
@@ -179,6 +191,7 @@ void AddDate(fraction_state *waste_data){
   	waste_data[0].date.year = t->tm_year+1900;
 }
 
+/* Reset Data on CreateEntry*/
 void resetdata(fraction_state *waste_data){
     waste_data[0].residual = 0;
     waste_data[0].paper = 0;
@@ -186,6 +199,7 @@ void resetdata(fraction_state *waste_data){
     waste_data[0].metal = 0;
 }
 
+/* Check fractiontype of Input*/
 int WhichFractionType(const char * fraction){
 	
 	if (is_residual(fraction)) return residual;
@@ -215,6 +229,7 @@ int is_paper(const char * fraction){
 	return strcmp(fraction, "paper") ? 0 : 1;
 }
 
+/* Print Content of all Fractions and date for each entry in WasteData */
 void print_all(fraction_state *waste_data, int s){
 	int i;
 	for (i = 0; i < s; ++i){
@@ -229,10 +244,12 @@ void print_all(fraction_state *waste_data, int s){
 	}
 }
 
+/* All motivational modules*/
 void motivation_modules(fraction_state *waste_data, int s){
 	scoreboard(waste_data, s);
 }
 
+/* */
 void scoreboard(fraction_state *waste_data, int s){
     user_stats *rating = malloc(rating_interval * sizeof(user_stats));
     int k = load_userstats("user.stats", rating);
@@ -241,6 +258,7 @@ void scoreboard(fraction_state *waste_data, int s){
     free(rating);
 }
 
+/*	Load userstats from save into ratings array, then return amount of entries */
 int load_userstats(char * file, user_stats *rating){
     int i = 0,
     n = 0;
@@ -268,10 +286,13 @@ int load_userstats(char * file, user_stats *rating){
     return n;
 }
 
+/* Check if it is time for rating */
 int time_for_rating(void){
+
 	return 1;
 }
 
+/* Calculate New Rating */
 int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s){
     double SGP = sorted_garbage_percentage(waste_data, s);
     ShiftRating(rating, k);
@@ -281,18 +302,19 @@ int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s){
     return k + 1;
 }
 
+/* Calculate Sorted Garbage Percentage in timeperiod SGP_INTERVAL */
 double sorted_garbage_percentage(fraction_state *waste_data, int s){
 	int i;
 	double sorted_garbage;
 	double total_garbage;
-	for (i = 0; i < SGP_interval && i < s; ++i){
+	for (i = 0; i < SGP_INTERVAL && i < s; ++i){
 		sorted_garbage += waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
 		total_garbage += waste_data[i].residual + waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
 	}
-	printf("%lf/%lf = %lf\n", sorted_garbage, total_garbage, sorted_garbage/total_garbage * 100);
-	return sorted_garbage/total_garbage * 100;
+	return (sorted_garbage/total_garbage * 100.00);
 }
 
+/* Shift Rating, so element 0 is the latest rating */
 void ShiftRating(user_stats *rating, int s){
 	while(s > 0){
 		rating[s] = rating[s-1];
@@ -300,6 +322,7 @@ void ShiftRating(user_stats *rating, int s){
 	}
 }
 
+/* Points based on Sorted Garbage Percentage */
 double SGP_points(double SGP){
 	double points = 0;
 	if (SGP < 15){
@@ -316,6 +339,7 @@ double SGP_points(double SGP){
 	return points;
 }
 
+/* Point Decay based on rating */
 int point_decay(int rating){
 	int decay = 0;
 	if (rating < 19){
