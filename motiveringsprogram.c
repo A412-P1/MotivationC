@@ -6,8 +6,7 @@
 
 #define MIN(x, y) (x < y ? x : y)
 #define days 30
-#define SGP_INTERVAL 7
-#define rating_interval 10
+#define RATING_INTERVAL 7
 
 typedef struct {
 	int day;
@@ -40,14 +39,14 @@ void UpdateEntry(fractiontype fraction, int weight, fraction_state *waste_data, 
 void CreateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s);
 void AddWasteData(fractiontype fraction, int weight, fraction_state *waste_data, int s);
 void ShiftData(fraction_state *waste_data, int s);
-void AddDate(fraction_state *waste_data);
+void AddDate(date *date);
 void resetdata(fraction_state *waste_data);
-void motivation_modules(fraction_state *wastedata, int s);
+void motivational_modules(fraction_state *wastedata, int s);
 void scoreboard(fraction_state *wastedata, int s);
 double sorted_garbage_percentage(fraction_state *waste_data, int s);
 void ShiftRating(user_stats *rating, int s);
-double SGP_points(double SGP);
-int point_decay(int rating);
+double Rating_Points(double SGP);
+int Rating_Decay(int rating);
 int load_userstats(char * file, user_stats *rating);
 int time_for_rating(void);
 int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s);
@@ -73,7 +72,7 @@ int main(int argc, char const *argv[]){
 	fraction_state *waste_data = malloc(days * sizeof(fraction_state));
 	s = load_wastedata("save", waste_data);
 	s = new_input(argc, argv, waste_data, s);
-	motivation_modules(waste_data, s);
+	motivational_modules(waste_data, s);
 	save_wastedata("save", waste_data, s);
 	free(waste_data);
 	return 0;
@@ -115,8 +114,9 @@ int new_input(int argc, char const *argv[], fraction_state *waste_data, int s){
 	int weight;
 	fractiontype fraction;
 	if (argc != 3) return s;
-	weight = atoi(argv[2]);
 	fraction = WhichFractionType(argv[1]);
+	weight = atoi(argv[2]);
+
 	if (IsToday(waste_data[0].date)){
 		UpdateEntry(fraction, weight, waste_data, s);
 		return s;
@@ -124,7 +124,6 @@ int new_input(int argc, char const *argv[], fraction_state *waste_data, int s){
 		CreateEntry(fraction, weight, waste_data, s);
 		return s + 1;
 	}
-	return s;
 }
 
 /* Check if Date is Today for Most Recent Deposit
@@ -147,7 +146,7 @@ void UpdateEntry(fractiontype fraction, int weight, fraction_state *waste_data, 
 /* Create New Entry in WasteData if Current Date != Latest Entry*/
 void CreateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s){
 	ShiftData(waste_data, s);
-	AddDate(waste_data);
+	AddDate(&waste_data[0].date);
     resetdata(waste_data);
 	AddWasteData(fraction, weight, waste_data, s);
 }
@@ -183,12 +182,12 @@ void ShiftData(fraction_state *waste_data, int s){
 }
 
 /* Add Date to Created Entry*/
-void AddDate(fraction_state *waste_data){
+void AddDate(date *date){
 	time_t now = time(NULL);
   	struct tm *t = localtime(&now);
-  	waste_data[0].date.day = t->tm_mday,
-  	waste_data[0].date.month = t->tm_mon+1,
-  	waste_data[0].date.year = t->tm_year+1900;
+  	date->day = t->tm_mday,
+  	date->month = t->tm_mon+1,
+  	date->year = t->tm_year+1900;
 }
 
 /* Reset Data on CreateEntry*/
@@ -245,13 +244,13 @@ void print_all(fraction_state *waste_data, int s){
 }
 
 /* All motivational modules*/
-void motivation_modules(fraction_state *waste_data, int s){
+void motivational_modules(fraction_state *waste_data, int s){
 	scoreboard(waste_data, s);
 }
 
 /* */
 void scoreboard(fraction_state *waste_data, int s){
-    user_stats *rating = malloc(rating_interval * sizeof(user_stats));
+    user_stats *rating = malloc(RATING_INTERVAL * sizeof(user_stats));
     int k = load_userstats("user.stats", rating);
     if (time_for_rating()) k = new_rating(rating, k, waste_data, s);
     save_userstats("user.stats", rating, k);
@@ -295,19 +294,20 @@ int time_for_rating(void){
 /* Calculate New Rating */
 int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s){
     double SGP = sorted_garbage_percentage(waste_data, s);
-    ShiftRating(rating, k);
-    rating[0].date = rating[1].date;
+    int LastRating = (k == 0) ? 0 : rating[0].rating;
+	ShiftRating(rating, k);
+	AddDate(&rating[0].date);
     rating[0].SGP = SGP;
-    rating[0].rating = MIN(100, rating[1].rating + SGP_points(SGP) - point_decay(rating[1].rating));
+    rating[0].rating = MIN(100, LastRating + Rating_Points(SGP) - Rating_Decay(rating[1].rating));
     return k + 1;
 }
 
-/* Calculate Sorted Garbage Percentage in timeperiod SGP_INTERVAL */
+/* Calculate Sorted Garbage Percentage in timeperiod RATING_INTERVAL */
 double sorted_garbage_percentage(fraction_state *waste_data, int s){
 	int i;
 	double sorted_garbage;
 	double total_garbage;
-	for (i = 0; i < SGP_INTERVAL && i < s; ++i){
+	for (i = 0; i < RATING_INTERVAL && i < s; ++i){
 		sorted_garbage += waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
 		total_garbage += waste_data[i].residual + waste_data[i].paper + waste_data[i].plastic + waste_data[i].metal;
 	}
@@ -323,24 +323,24 @@ void ShiftRating(user_stats *rating, int s){
 }
 
 /* Points based on Sorted Garbage Percentage */
-double SGP_points(double SGP){
+double Rating_Points(double SGP){
 	double points = 0;
 	if (SGP < 15){
-		points += 0;
+		points = 0;
 	} else if (SGP < 30){
-		points += 4;
+		points = 4;
 	}  else if (SGP < 50){
-		points += 6;
+		points = 6;
 	}  else if (SGP < 60){
-		points += 8;
+		points = 8;
 	}  else {
-		points += 10;
+		points = 10;
 	}
 	return points;
 }
 
 /* Point Decay based on rating */
-int point_decay(int rating){
+int Rating_Decay(int rating){
 	int decay = 0;
 	if (rating < 19){
 		decay = 0;
