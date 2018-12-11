@@ -31,6 +31,9 @@ typedef struct {
 /* Fraction Types*/
 typedef enum {residual, paper, plastic, metal} fractiontype;
 
+/* Ranks */
+typedef enum {bronze, silver, gold, platinum, diamond} rank;
+
 /* PROTOTYPES*/
 int load_wastedata(char * file, fraction_state *waste_data);
 int new_input(int argc, char const *argv[], fraction_state *waste_data, int s);
