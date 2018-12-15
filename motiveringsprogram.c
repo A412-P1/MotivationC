@@ -7,8 +7,7 @@
 #include <windows.h>
 
 
-#define CHEAT_MODE 0
-
+#define CHEAT_MODE 1
 #define MIN(x, y) (x < y ? x : y)
 #define DAYS 30
 #define RATING_SIZE 30
@@ -683,7 +682,7 @@ void AddWasteData(fractiontype fraction, int weight, fraction_state *waste_data,
 
 /* Shift WasteData, so element 0 is the latest entry */
 void shift_data(fraction_state *waste_data, int s){
-	int i = MIN(s, 29);
+	int i = MIN(s, DAYS - 1);
 	while(i > 0){
 		waste_data[i] = waste_data[i-1];
 		i--;
