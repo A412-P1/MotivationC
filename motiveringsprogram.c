@@ -7,13 +7,14 @@
 #include <windows.h>
 
 
+#define CHEAT_MODE 0
+
 #define MIN(x, y) (x < y ? x : y)
 #define DAYS 30
 #define RATING_SIZE 30
 #define RATING_INTERVAL 7
 #define GRAPH_INTERVAL 30
 #define ANIMATE_ENABLE 0
-
 #define LOCAL_USERS 1500
 #define WAVELENGHT sqrt(20*20 + 2*2)
 
@@ -69,7 +70,7 @@ void shift_rating(user_stats *rating, int s);
 double rating_points(double x);
 double rating_decay(double x);
 int load_userstats(char * file, user_stats *rating);
-int time_for_rating(void);
+int time_for_rating(user_stats *rating, int k, fraction_state *waste_data, int s);
 int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s);
 void save_userstats(char * file, const user_stats *rating, int s);
 void rankstatistics(char screen[29][119], user_stats *rating);
@@ -141,7 +142,6 @@ void userinterface(fraction_state *waste_data, int s){
 	int weight;
 	char type[15];
 	char screen[29][119] = {' '};
-	reset_screen(30);
 
 	/* Set Static Screen Layout */
 	set_screenlayout(screen);
@@ -282,7 +282,7 @@ void update_screen(char screen[29][119], fraction_state *waste_data, int s){
 	Save new rating */
 int  ratingsystem(fraction_state *waste_data, int s, user_stats *rating){
     int k = load_userstats("user.stats", rating);
-    if (time_for_rating()) k = new_rating(rating, k, waste_data, s);
+    if (time_for_rating(rating, k, waste_data, s)) k = new_rating(rating, k, waste_data, s);
     save_userstats("user.stats", rating, k);
     return k;
 }
@@ -316,9 +316,16 @@ int load_userstats(char * file, user_stats *rating){
 }
 
 /* Check if it is time for rating */
-int time_for_rating(void){
+int time_for_rating(user_stats *rating, int k, fraction_state *waste_data, int s){
+	int wd_day = waste_data[RATING_INTERVAL-1].date.day;
+	int wd_month = waste_data[RATING_INTERVAL-1].date.month;
+	int wd_year = waste_data[RATING_INTERVAL-1].date.year;
+	int rating_day = rating[0].date.day;
+	int rating_month = rating[0].date.month;
+	int rating_year = rating[0].date.year;
+	if (s < RATING_INTERVAL) return 0;
+	return (wd_day == rating_day && wd_month == rating_month && wd_year == rating_year) ? 1 : 0;
 
-	return 1;
 }
 
 /* Calculate New Rating */
@@ -444,6 +451,7 @@ double fraction_percentage(fractiontype fraction, fraction_state *waste_data, in
 		total += residual + paper + plastic + metal;
 	}
 
+	if(total == 0) return 0;
 /* Return fraction percentage based on fractiontype */
 	switch(fraction){
 	case RESIDUAL:	
@@ -621,7 +629,7 @@ int load_alluserstats(char * file, user_stats *all_user_ratings){
 int new_input(char *type, int weight, fraction_state *waste_data, int s){
 	fractiontype fraction = WhichFractionType(type);
 	if (fraction == -1) return s;
-	if (IsToday(waste_data[0].date)){
+	if (IsToday(waste_data[0].date) && CHEAT_MODE){
 		update_entry(fraction, weight, waste_data, s);
 		return s;
 	} else {
