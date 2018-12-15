@@ -317,7 +317,7 @@ int load_userstats(char * file, user_stats *rating){
 
 /* Check if it is time for rating */
 int time_for_rating(void){
-	
+
 	return 1;
 }
 
@@ -341,7 +341,7 @@ int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s){
 
 /* Shift Rating, so element 0 is the latest rating */
 void shift_rating(user_stats *rating, int s){
-	int i = MIN(s, 29);
+	int i = MIN(s, RATING_SIZE-1);
 	while(i > 0){
 		rating[i] = rating[i-1];
 		i--;
