@@ -53,21 +53,21 @@ void userinterface(fraction_state *waste_data, int s);
 void set_screenlayout(char screen[29][119]);
 int new_input(char *type, int weight, fraction_state *waste_data, int s);
 int IsToday(date date);
-void UpdateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s);
-void CreateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s);
+void update_entry(fractiontype fraction, int weight, fraction_state *waste_data, int s);
+void create_entry(fractiontype fraction, int weight, fraction_state *waste_data, int s);
 void AddWasteData(fractiontype fraction, int weight, fraction_state *waste_data, int s);
-void ShiftData(fraction_state *waste_data, int s);
+void shift_data(fraction_state *waste_data, int s);
 void AddDate(date *date);
 void resetdata(fraction_state *waste_data);
-void updatescreen(char screen[29][119], fraction_state *waste_data, int s);
+void update_screen(char screen[29][119], fraction_state *waste_data, int s);
 void performancegraph(char screen[29][119], user_stats *rating, int k);
 void histogram(char screen[29][119], fraction_state *waste_data, int s);
 double fraction_percentage(fractiontype fraction, fraction_state *waste_data, int s);
 int round_number(double input);
 int ratingsystem(fraction_state *wastedata, int s, user_stats *rating);
-void ShiftRating(user_stats *rating, int s);
-double Rating_Points(double x);
-double Rating_Decay(double x);
+void shift_rating(user_stats *rating, int s);
+double rating_points(double x);
+double rating_decay(double x);
 int load_userstats(char * file, user_stats *rating);
 int time_for_rating(void);
 int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s);
@@ -148,7 +148,7 @@ void userinterface(fraction_state *waste_data, int s){
 	do {
 
 		/* Update Screen with new info on each loop*/
-		updatescreen(screen, waste_data, s);
+		update_screen(screen, waste_data, s);
 
 		/* Wait for user input*/
 		printf(">> ");
@@ -249,7 +249,7 @@ void set_screenlayout(char screen[29][119]){
 	Performance graph
 	Histogram 
 	Rankstatistics */
-void updatescreen(char screen[29][119], fraction_state *waste_data, int s){
+void update_screen(char screen[29][119], fraction_state *waste_data, int s){
 	int i;
 	int j;
 	user_stats *rating = malloc(RATING_SIZE * sizeof(user_stats));
@@ -317,7 +317,7 @@ int load_userstats(char * file, user_stats *rating){
 
 /* Check if it is time for rating */
 int time_for_rating(void){
-
+	
 	return 1;
 }
 
@@ -330,17 +330,17 @@ int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s){
     double SGP = fraction_percentage(PAPER, waste_data, s) + fraction_percentage(PLASTIC, waste_data, s) + fraction_percentage(METAL, waste_data, s);
     
     /* Shift ratings array so rating[1] = LastRating and Rating[0] = new rating */
-    if (k) ShiftRating(rating, k);
+    if (k) shift_rating(rating, k);
 	
     /* Add Date of Rating calculation to New Rating*/
 	AddDate(&rating[0].date);
     rating[0].SGP = SGP;
-    rating[0].rating = LastRating + Rating_Points(SGP) - Rating_Decay(LastRating);
+    rating[0].rating = LastRating + rating_points(SGP) - rating_decay(LastRating);
     return min(k + 1, DAYS);
 }
 
 /* Shift Rating, so element 0 is the latest rating */
-void ShiftRating(user_stats *rating, int s){
+void shift_rating(user_stats *rating, int s){
 	int i = MIN(s, 29);
 	while(i > 0){
 		rating[i] = rating[i-1];
@@ -349,12 +349,12 @@ void ShiftRating(user_stats *rating, int s){
 }
 
 /* Points based on Sorted Garbage Percentage */
-double Rating_Points(double x){
+double rating_points(double x){
 	return x/10;
 }
 
 /* Point Decay based on last rating */
-double Rating_Decay(double x){
+double rating_decay(double x){
 	return (   0.3 * cos((2*x*M_PI)/WAVELENGHT) + x/10 - 0.3  );
 }
 
@@ -622,10 +622,10 @@ int new_input(char *type, int weight, fraction_state *waste_data, int s){
 	fractiontype fraction = WhichFractionType(type);
 	if (fraction == -1) return s;
 	if (IsToday(waste_data[0].date)){
-		UpdateEntry(fraction, weight, waste_data, s);
+		update_entry(fraction, weight, waste_data, s);
 		return s;
 	} else {
-		CreateEntry(fraction, weight, waste_data, s);
+		create_entry(fraction, weight, waste_data, s);
 		return min(s + 1, DAYS);;	
 	}
 }
@@ -643,13 +643,13 @@ int IsToday(date MRD){
 }
 
 /* Update Lastest Entry in WasteData Latest Entry*/
-void UpdateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s){
+void update_entry(fractiontype fraction, int weight, fraction_state *waste_data, int s){
 	AddWasteData(fraction, weight, waste_data, s);
 }
 
 /* Create New Entry in WasteData if Current Date != Latest Entry*/
-void CreateEntry(fractiontype fraction, int weight, fraction_state *waste_data, int s){
-	ShiftData(waste_data, s);
+void create_entry(fractiontype fraction, int weight, fraction_state *waste_data, int s){
+	shift_data(waste_data, s);
 	AddDate(&waste_data[0].date);
     resetdata(waste_data);
 	AddWasteData(fraction, weight, waste_data, s);
@@ -674,7 +674,7 @@ void AddWasteData(fractiontype fraction, int weight, fraction_state *waste_data,
 }
 
 /* Shift WasteData, so element 0 is the latest entry */
-void ShiftData(fraction_state *waste_data, int s){
+void shift_data(fraction_state *waste_data, int s){
 	int i = MIN(s, 29);
 	while(i > 0){
 		waste_data[i] = waste_data[i-1];
@@ -691,7 +691,7 @@ void AddDate(date *date){
   	date->year = t->tm_year+1900;
 }
 
-/* Reset Data on CreateEntry*/
+/* Reset Data on create_entry*/
 void resetdata(fraction_state *waste_data){
     waste_data[0].residual = 0;
     waste_data[0].paper = 0;
