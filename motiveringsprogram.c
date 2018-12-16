@@ -13,7 +13,7 @@
 #define RATING_SIZE 30
 #define RATING_INTERVAL 7
 #define GRAPH_INTERVAL 30
-#define ANIMATE_ENABLE 0
+#define ANIMATE_ENABLE 1
 #define LOCAL_USERS 1500
 #define WAVELENGHT sqrt(20*20 + 2*2)
 
@@ -757,9 +757,9 @@ void trashbin(int space){
 	int i;
 	char spacebuffer[15] = "";
 	printf(
-		"       =========\n"
-		" ______||_____||______\n"
-		"|_____________________|\n");
+		"                =========\n"
+		"          ______||_____||______\n"
+		"         |_____________________|\n");
 	for ( i = 0; i < space; ++i)
 	{
 		sprintf(spacebuffer, "%s\n", spacebuffer);
@@ -768,22 +768,22 @@ void trashbin(int space){
 	printf("%s", spacebuffer);
 	if (space)
 	{
-		printf(" _____________________\n");
+		printf("          _____________________\n");
 	}
 	printf(
-		"|                     |\n"
-		"|  |   |   |   |   |  |\n"
-		"|  |   |   |   |   |  |\n"
-		"|  |   |   |   |   |  |\n"
-		"|  |   |   |   |   |  |\n"
-		"|  |   |   |   |   |  |\n"
-		"|  |   |   |   |   |  |\n"
-		"|  |   |   |   |   |  |\n"
-		"|  |   |   |   |   |  |\n"
-		"|  |   |   |   |   |  |\n"
-		"|  |   |   |   |   |  |\n"
-		"|                     |\n"
-		"|_____________________|\n");
+		"         |                     |\n"
+		"         |  |   |   |   |   |  |\n"
+		"         |  |   |   |   |   |  |\n"
+		"         |  |   |   |   |   |  |\n"
+		"         |  |   |   |   |   |  |\n"
+		"         |  |   |   |   |   |  |\n"
+		"         |  |   |   |   |   |  |\n"
+		"         |  |   |   |   |   |  |\n"
+		"         |  |   |   |   |   |  |\n"
+		"         |  |   |   |   |   |  |\n"
+		"         |  |   |   |   |   |  |\n"
+		"         |                     |\n"
+		"         |_____________________|\n\n");
 }
 
 /*  Animate drawing based on speed, Number of times to animate and space between
