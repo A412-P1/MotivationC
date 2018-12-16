@@ -6,17 +6,22 @@
 #include <math.h>
 #include <windows.h>
 
-
+/* SETTINGS*/
 #define CHEAT_MODE 1
-#define MIN(x, y) (x < y ? x : y)
+#define ANIMATE_ENABLE 0
 #define DAYS 30
 #define RATING_SIZE 30
 #define RATING_INTERVAL 7
 #define GRAPH_INTERVAL 30
-#define ANIMATE_ENABLE 1
-#define LOCAL_USERS 1500
-#define WAVELENGHT sqrt(20*20 + 2*2)
 
+#define LOCAL_USERS 1500
+
+/* MACROS*/
+#define MIN(x, y) (x < y ? x : y)
+
+/* SYMBOLIC CONSTANTS*/
+#define WAVELENGHT sqrt(20*20 + 2*2)
+#define M_PI 3.14159265359
 
 typedef struct {
 	int day;
@@ -37,8 +42,6 @@ typedef struct {
     double SGP;
     double rating;
 } user_stats;
-
-
 
 /* Fraction Types*/
 typedef enum {RESIDUAL, PAPER, PLASTIC, METAL} fractiontype;
@@ -140,7 +143,7 @@ int load_wastedata(char * file, fraction_state *waste_data){
 void userinterface(fraction_state *waste_data, int s){
 	int weight;
 	char type[15];
-	char screen[29][119] = {' '};
+	char screen[29][119] = {{' '}};
 
 	/* Set Static Screen Layout */
 	set_screenlayout(screen);
@@ -169,7 +172,6 @@ void reset_screen(int n){
 void set_screenlayout(char screen[29][119]){
 	int i;
 	int j;
-	int x;
 	char *performancegraph = "Performance Graph";
 	char *performance = "PERFORMANCE";
 	char *time = "T I M E";
@@ -238,7 +240,6 @@ void set_screenlayout(char screen[29][119]){
 		screen[20-i][j+29] = '|';
 	}
 
-
 	/* Populate STATISTICS Layout*/
 	for (j = 0; j < strlen(rankstats); ++j)
 	{
@@ -259,7 +260,6 @@ void update_screen(char screen[29][119], fraction_state *waste_data, int s){
 	int i;
 	int j;
 	int n = 0;
-	char temp;
 	char screenprint[3510];
 	user_stats *rating = malloc(RATING_SIZE * sizeof(user_stats));
 
@@ -376,7 +376,7 @@ double rating_points(double x){
 
 /* Point Decay based on last rating */
 double rating_decay(double x){
-	return (   0.3 * cos((2*x*M_PI)/WAVELENGHT) + x/10 - 0.3  );
+	return (0.3 * cos((2*x*M_PI)/WAVELENGHT) + x/10 - 0.3);
 }
 
 void save_userstats(char * file, const user_stats *rating, int s){
@@ -481,6 +481,7 @@ double fraction_percentage(fractiontype fraction, fraction_state *waste_data, in
 		return metal/total * 100;
 		break;
 	}
+	return -1;
 }
 
 /* Round number from 10s to 1s */
@@ -538,14 +539,13 @@ int rank(char screen[29][119], int rating){
 }
 
 void top_percentage(char screen[29][119], user_stats *rating){
-	user_stats *all_user_ratings = malloc(LOCAL_USERS * sizeof(user_stats));
-	int k = load_alluserstats("alluser.stats", all_user_ratings);
 	int i;
-	int s;
-	int n;
 	double x;
 	char percentage[45];
-
+	user_stats *all_user_ratings = malloc(LOCAL_USERS * sizeof(user_stats));
+		
+	load_alluserstats("alluser.stats", all_user_ratings);
+	
 	x = (double) binarysearch_rating(all_user_ratings, 0, LOCAL_USERS-1, rating[0].rating);
 	x = ((x+1)/(LOCAL_USERS+1)) * 100;
 
@@ -558,16 +558,17 @@ void top_percentage(char screen[29][119], user_stats *rating){
 	free(all_user_ratings);
 }
 
-/* Get index of rating HIR in all_user_ratings from interval [i - s]
-   Assumes list is ordered in descending order.
-   */
+/* 
+Get index of rating HIR in all_user_ratings from interval [i - s], where
+HIR < k <= MIR. Assumes list is ordered in descending order.
+*/
 int binarysearch_rating(user_stats *all_user_ratings, int i, int s, double k){
 	int halfindex = (i+s)/2;
 
 	/* Rating of halfindex*/
 	double HIR = all_user_ratings[halfindex].rating;
 
-	/* Rating of entry just below halfindex */
+	/* Rating of entry just above halfindex */
 	double MIR = all_user_ratings[halfindex - 1].rating;
 	if(k < all_user_ratings[s].rating){
 		return s;
@@ -578,16 +579,18 @@ int binarysearch_rating(user_stats *all_user_ratings, int i, int s, double k){
 	} else if (k > HIR){
 		return binarysearch_rating(all_user_ratings, i, halfindex, k);
 	}
+	return -1;
 }
 
 /* Calculate average sorting percentage for entire local area
    Reuses user_stats struct, but SGP is Average SGP! */
 void local_area_sorted(char screen[29][119]){
-	user_stats *all_user_ratings = malloc(LOCAL_USERS * sizeof(user_stats));
-	int k = load_alluserstats("alluser.stats", all_user_ratings);
 	int i;
 	double x;
 	char percentage[45];
+	user_stats *all_user_ratings = malloc(LOCAL_USERS * sizeof(user_stats));
+	
+	load_alluserstats("alluser.stats", all_user_ratings);
 
 	for (i = 0; i < LOCAL_USERS; ++i)
 	{
