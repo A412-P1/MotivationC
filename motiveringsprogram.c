@@ -150,7 +150,6 @@ void userinterface(fraction_state *waste_data, int s){
 		update_screen(screen, waste_data, s);
 
 		/* Wait for user input*/
-		printf(">> ");
 		scanf(" %s %d", type, &weight);
 		s = new_input(type, weight, waste_data, s);
 
@@ -180,6 +179,14 @@ void set_screenlayout(char screen[29][119]){
 	char *rank = "RANK:";
 
 	/* General  Layout*/
+	for (i = 0; i < 29; ++i)
+	{
+		for (j = 0; j < 119; ++j)
+		{
+			screen[i][j] = ' ';
+		}
+	}
+
 	for (j = 0; j < 119; ++j)
 	{
 		screen[21][j] = '-';
@@ -210,7 +217,7 @@ void set_screenlayout(char screen[29][119]){
 
 	for (j = 0; j < strlen(histogram); ++j)
 	{
-		screen[8][52+j] = histogram[j];
+		screen[8][56+j] = histogram[j];
 	}
 
 	for (j = 0; j < strlen(fractiontypes); ++j)
@@ -251,6 +258,9 @@ void set_screenlayout(char screen[29][119]){
 void update_screen(char screen[29][119], fraction_state *waste_data, int s){
 	int i;
 	int j;
+	int n = 0;
+	char temp;
+	char screenprint[3510];
 	user_stats *rating = malloc(RATING_SIZE * sizeof(user_stats));
 
 	/* Calculate Rating*/
@@ -267,11 +277,16 @@ void update_screen(char screen[29][119], fraction_state *waste_data, int s){
 	{
 		for (j = 0; j < 119; ++j)
 		{
-			printf("%c", screen[i][j]);
+			screenprint[n++] = screen[i][j];
 		}
-		printf("\n");
+		screenprint[n++] = '\n';
 	}
+	screenprint[n++] = '>';
+	screenprint[n++] = '>';
+	screenprint[n] = '\0';
 
+	
+	printf("%s", screenprint);
 	free(rating);
 }
 
@@ -281,7 +296,7 @@ void update_screen(char screen[29][119], fraction_state *waste_data, int s){
 	Save new rating */
 int  ratingsystem(fraction_state *waste_data, int s, user_stats *rating){
     int k = load_userstats("user.stats", rating);
-    if (time_for_rating(rating, k, waste_data, s)) k = new_rating(rating, k, waste_data, s);
+    if (time_for_rating(rating, k, waste_data, s) || CHEAT_MODE) k = new_rating(rating, k, waste_data, s);
     save_userstats("user.stats", rating, k);
     return k;
 }
@@ -470,7 +485,7 @@ double fraction_percentage(fractiontype fraction, fraction_state *waste_data, in
 
 /* Round number from 10s to 1s */
 int round_number(double input){
-	return (input / 10 >= 0.5) ? ceil(input / 10) : floor(input / 10); 
+	return ((input/10) - floor(input/10) >= 0.5) ? ceil(input / 10) : floor(input / 10); 
 }
 
 /* Calculate Rank Statistics*/
@@ -532,7 +547,7 @@ void top_percentage(char screen[29][119], user_stats *rating){
 	char percentage[45];
 
 	x = (double) binarysearch_rating(all_user_ratings, 0, LOCAL_USERS-1, rating[0].rating);
-	x = ((x+1)/LOCAL_USERS) * 100;
+	x = ((x+1)/(LOCAL_USERS+1)) * 100;
 
 	sprintf(percentage, "You are top %.0lf%% in your local area.", x);
 
@@ -544,8 +559,6 @@ void top_percentage(char screen[29][119], user_stats *rating){
 }
 
 /* Get index of rating HIR in all_user_ratings from interval [i - s]
-   HIR <= k < MIR, where k is the current rating of the user and MIR is the rating
-   of the previous of the user just below HIR.
    Assumes list is ordered in descending order.
    */
 int binarysearch_rating(user_stats *all_user_ratings, int i, int s, double k){
@@ -556,16 +569,14 @@ int binarysearch_rating(user_stats *all_user_ratings, int i, int s, double k){
 
 	/* Rating of entry just below halfindex */
 	double MIR = all_user_ratings[halfindex - 1].rating;
-	
-	if (HIR <= k && MIR > k){
-		while(HIR == k){
-			HIR = all_user_ratings[halfindex++].rating;
-		}
+	if(k < all_user_ratings[s].rating){
+		return s;
+	} else 	if (HIR < k && k <= MIR){
 		return halfindex;
-	} else if (HIR < k){
-		return binarysearch_rating(all_user_ratings, i, halfindex, k);
-	} else if (k < HIR){
+	} else if (k <= HIR){
 		return binarysearch_rating(all_user_ratings, halfindex, s, k);
+	} else if (k > HIR){
+		return binarysearch_rating(all_user_ratings, i, halfindex, k);
 	}
 }
 
@@ -628,7 +639,7 @@ int load_alluserstats(char * file, user_stats *all_user_ratings){
 int new_input(char *type, int weight, fraction_state *waste_data, int s){
 	fractiontype fraction = WhichFractionType(type);
 	if (fraction == -1) return s;
-	if (IsToday(waste_data[0].date) && CHEAT_MODE){
+	if (IsToday(waste_data[0].date)){
 		update_entry(fraction, weight, waste_data, s);
 		return s;
 	} else {
@@ -744,14 +755,17 @@ void delay(unsigned int mseconds){
 /* Trash bin drawing */
 void trashbin(int space){
 	int i;
+	char spacebuffer[15] = "";
 	printf(
 		"       =========\n"
 		" ______||_____||______\n"
 		"|_____________________|\n");
 	for ( i = 0; i < space; ++i)
 	{
-		printf("\n");
+		sprintf(spacebuffer, "%s\n", spacebuffer);
+		
 	}
+	printf("%s", spacebuffer);
 	if (space)
 	{
 		printf(" _____________________\n");
@@ -779,7 +793,6 @@ void animatetrashbin(int speed, int count, int space){
 	int j = 0;
 
 	reset_screen(30);
-	delay(2000);
 	for (i = 0; i < count; ++i){
 	
 		while( j < space ){
@@ -788,12 +801,14 @@ void animatetrashbin(int speed, int count, int space){
 			reset_screen(30);
 			j++;
 		}
-		while( j > 0){
+		while( j >= 0){
 			trashbin(j);
+			
 			delay(speed);
 			reset_screen(30);
 			j--;
 		}
+
 	}
 }
 
