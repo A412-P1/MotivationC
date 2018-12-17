@@ -21,7 +21,7 @@
 
 /* SYMBOLIC CONSTANTS*/
 #define WAVELENGHT sqrt(20*20 + 2*2)
-#define M_PI 3.14159265359
+#define mPI 3.14159265359
 
 typedef struct {
 	int day;
@@ -376,7 +376,7 @@ double rating_points(double x){
 
 /* Point Decay based on last rating */
 double rating_decay(double x){
-	return (0.3 * cos((2*x*M_PI)/WAVELENGHT) + x/10 - 0.3);
+	return (0.3 * cos((2*x*mPI)/WAVELENGHT) + x/10 - 0.3);
 }
 
 void save_userstats(char * file, const user_stats *rating, int s){
@@ -430,6 +430,7 @@ void histogram(char screen[29][119], fraction_state *waste_data, int s){
 		   plastic_percentage = fraction_percentage(PLASTIC, waste_data, s),
 		   metal_percentage = fraction_percentage(METAL, waste_data, s);
 
+
 	/* Amount of residual starts pr. percentage*/
 	int i,
 	    residual_stars = round_number(residual_percentage),
@@ -437,6 +438,8 @@ void histogram(char screen[29][119], fraction_state *waste_data, int s){
 	    plastic_stars = round_number(plastic_percentage),
 	    metal_stars = round_number(metal_percentage);
 
+
+	
 	/* Fill stars into screen*/
 	for (i = 0; i < 10; ++i)
 	{	
@@ -462,9 +465,8 @@ double fraction_percentage(fractiontype fraction, fraction_state *waste_data, in
 		paper += waste_data[i].paper;
 		plastic += waste_data[i].plastic;
 		metal += waste_data[i].metal;
-		total += residual + paper + plastic + metal;
+		total = residual + paper + plastic + metal;
 	}
-
 	if(total == 0) return 0;
 /* Return fraction percentage based on fractiontype */
 	switch(fraction){
