@@ -1,6 +1,6 @@
 # MotivationC
 
-This program has been developed as part of semester at AAU. The programs goal is to providing motivating output based on garbage sorted. This application specifically addresses the motivational process, and as such, garbage disposal is simmulated through manual entry with the following syntax:
+This program has been developed as part of a semester at AAU. The programs goal is to providing motivating output based on garbage sorted. This application specifically addresses the motivational process, and as such, garbage disposal is simmulated through manual entry with the following syntax:
 ```
 fractiontype weight
 ```
