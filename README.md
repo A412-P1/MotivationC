@@ -1,14 +1,10 @@
 # MotivationC
 
-Programmet kan:
-- Læse og gemme tilføjelser til affaldsfraktionerne paper, metal, plastic og residual på filen "save"; nyt input er baseret på dato.
-- Læse og gemme ny rating samt sorterings procent på filen user.stats (ikke færdig)
-
-
-Kør eksempeltvis programmet med kommandoen:
-
-    a.exe paper 5
-
-for at tilføje vægten 5 til affaldsfraktionen paper.
-
-
+This program has been developed as part of semester at AAU. The programs goal is to providing motivating output based on garbage sorted. This application specifically addresses the motivational process, and as such, garbage disposal is simmulated through manual entry with the following syntax:
+```
+fractiontype weight
+```
+where fractiontype is one of four fractiontypes (*residual, paper, plastic or metal*) and weigth is a postive integer. An example is given below:
+```css
+residual 1250
+```
