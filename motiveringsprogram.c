@@ -7,8 +7,8 @@
 #include <windows.h>
 
 /* SETTINGS*/
-#define CHEAT_MODE 1
-#define ANIMATE_ENABLE 0
+#define DEMO_MODE 1
+#define ANIMATE_ENABLE 1
 #define DAYS 30
 #define RATING_SIZE 30
 #define RATING_INTERVAL 7
@@ -69,8 +69,8 @@ double fraction_percentage(fractiontype fraction, fraction_state *waste_data, in
 int round_number(double input);
 int ratingsystem(fraction_state *wastedata, int s, user_stats *rating);
 void shift_rating(user_stats *rating, int s);
-double rating_points(double x);
-double rating_decay(double x);
+double award(double x);
+double decay(double x);
 int load_userstats(char * file, user_stats *rating);
 int time_for_rating(user_stats *rating, int k, fraction_state *waste_data, int s);
 int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s);
@@ -157,7 +157,7 @@ void userinterface(fraction_state *waste_data, int s){
 		s = new_input(type, weight, waste_data, s);
 
 		/* Animate trashbin */
-		if (ANIMATE_ENABLE) animatetrashbin(80, 1, 4);
+		if (ANIMATE_ENABLE) animatetrashbin(85, 1, 4);
 
 		/* Backup WasteData */
 		save_wastedata("save", waste_data, s);
@@ -165,7 +165,13 @@ void userinterface(fraction_state *waste_data, int s){
 }
 
 void reset_screen(int n){
-		printf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+	int i;
+	char reset[100];
+	for (i = 0; i < n; ++i)
+	{
+		sprintf(reset, "%s\n", reset);
+	}
+		printf("%s", reset);
 }
 
 /* Set Static ScreenLayout */
@@ -252,7 +258,7 @@ void set_screenlayout(char screen[29][119]){
 	}
 }
 
-/*  Update all Screen Modules:
+/*  Update all Screen Modules and then print:
 	Performance graph
 	Histogram 
 	Rankstatistics */
@@ -272,7 +278,7 @@ void update_screen(char screen[29][119], fraction_state *waste_data, int s){
 	rankstatistics(screen, rating);
 
 
-	/* Print Screen*/
+	/* Convert ScreenMatrix to String*/
 	for (i = 0; i < 29; ++i)
 	{
 		for (j = 0; j < 119; ++j)
@@ -285,7 +291,7 @@ void update_screen(char screen[29][119], fraction_state *waste_data, int s){
 	screenprint[n++] = '>';
 	screenprint[n] = '\0';
 
-	
+	/* Print to stdout */
 	printf("%s", screenprint);
 	free(rating);
 }
@@ -296,7 +302,7 @@ void update_screen(char screen[29][119], fraction_state *waste_data, int s){
 	Save new rating */
 int  ratingsystem(fraction_state *waste_data, int s, user_stats *rating){
     int k = load_userstats("user.stats", rating);
-    if (time_for_rating(rating, k, waste_data, s) || CHEAT_MODE) k = new_rating(rating, k, waste_data, s);
+    if (time_for_rating(rating, k, waste_data, s) || DEMO_MODE) k = new_rating(rating, k, waste_data, s);
     save_userstats("user.stats", rating, k);
     return k;
 }
@@ -344,19 +350,19 @@ int time_for_rating(user_stats *rating, int k, fraction_state *waste_data, int s
 
 /* Calculate New Rating */
 int new_rating(user_stats *rating, int k, fraction_state *waste_data, int s){
-	/* If no previous ratings Lastrating 0, else set to latest rating */
-    double LastRating = (k == 0) ? 0 : rating[0].rating;
+	/* If no previous ratings set Current rating to 0, */
+    double CurrentRating = (k == 0) ? 0 : rating[0].rating;
 
     /* Calculate Sorted Percentage for the last 7 DAYS */
     double SGP = fraction_percentage(PAPER, waste_data, s) + fraction_percentage(PLASTIC, waste_data, s) + fraction_percentage(METAL, waste_data, s);
     
-    /* Shift ratings array so rating[1] = LastRating and Rating[0] = new rating */
+    /* Shift ratings array so rating[1] = CurrentRating and Rating[0] = new rating */
     if (k) shift_rating(rating, k);
 	
     /* Add Date of Rating calculation to New Rating*/
 	AddDate(&rating[0].date);
     rating[0].SGP = SGP;
-    rating[0].rating = LastRating + rating_points(SGP) - rating_decay(LastRating);
+    rating[0].rating = CurrentRating + award(SGP) - decay(CurrentRating);
     return min(k + 1, DAYS);
 }
 
@@ -370,12 +376,12 @@ void shift_rating(user_stats *rating, int s){
 }
 
 /* Points based on Sorted Garbage Percentage */
-double rating_points(double x){
+double award(double x){
 	return x/10;
 }
 
 /* Point Decay based on last rating */
-double rating_decay(double x){
+double decay(double x){
 	return (0.3 * cos((2*x*mPI)/WAVELENGHT) + x/10 - 0.3);
 }
 
@@ -797,20 +803,20 @@ void animatetrashbin(int speed, int count, int space){
 	int i = 0;
 	int j = 0;
 
-	reset_screen(30);
+	reset_screen(50);
 	for (i = 0; i < count; ++i){
 	
 		while( j < space ){
 			trashbin(j);
 			delay(speed);
-			reset_screen(30);
+			reset_screen(50);
 			j++;
 		}
 		while( j >= 0){
 			trashbin(j);
 			
 			delay(speed);
-			reset_screen(30);
+			reset_screen(50);
 			j--;
 		}
 
